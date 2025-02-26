@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/App";
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,10 +14,12 @@ export function AuthForm() {
   const [password, setPassword] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual auth logic
+    // TODO: Replace with actual auth logic
+    login(); // Set authenticated state to true
     toast({
       title: isLogin ? "Welcome back!" : "Account created successfully!",
       description: "Redirecting to dashboard...",
