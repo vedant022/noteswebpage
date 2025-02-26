@@ -5,20 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement actual auth logic
     toast({
       title: isLogin ? "Welcome back!" : "Account created successfully!",
-      description: "This is a demo message. Implement actual authentication.",
+      description: "Redirecting to dashboard...",
     });
+    navigate("/dashboard");
   };
 
   return (
