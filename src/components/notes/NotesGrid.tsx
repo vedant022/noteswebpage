@@ -1,52 +1,113 @@
 
+import { useEffect, useState } from "react";
 import { NoteCard } from "./NoteCard";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+type Note = {
+  id: string;
+  title: string;
+  content: string | null;
+  photo_url: string | null;
+  voice_url: string | null;
+};
 
 export function NotesGrid() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Demo notes data
-  const notes = [
-    {
-      id: 1,
-      title: "Welcome Note",
-      content: "Welcome to your new notes app! Start by creating a new note.",
+  const { data: notes = [], isLoading } = useQuery({
+    queryKey: ['notes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Note[];
     },
-    {
-      id: 2,
-      title: "Getting Started",
-      content: "Click the + button to create a new note. You can edit or delete notes using the buttons on each card.",
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
-  ];
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      toast({
+        title: "Success",
+        description: "Note deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const handleNewNote = () => {
+  const handleNewNote = async () => {
+    setIsCreating(true);
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .insert([
+          { 
+            title: 'New Note', 
+            content: 'Start writing...',
+          }
+        ]);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      toast({
+        title: "Success",
+        description: "New note created",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleEdit = async (id: string) => {
     toast({
-      title: "Create New Note",
-      description: "This is a demo. Implement actual note creation.",
+      title: "Coming soon",
+      description: "Note editing will be implemented in the next update",
     });
   };
 
-  const handleEdit = (id: number) => {
-    toast({
-      title: "Edit Note",
-      description: `Editing note ${id}. Implement actual editing.`,
-    });
+  const handleDelete = async (id: string) => {
+    deleteMutation.mutate(id);
   };
 
-  const handleDelete = (id: number) => {
-    toast({
-      title: "Delete Note",
-      description: `Deleting note ${id}. Implement actual deletion.`,
-    });
-  };
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Your Notes</h2>
-        <Button onClick={handleNewNote}>
+        <Button onClick={handleNewNote} disabled={isCreating}>
           <Plus className="w-4 h-4 mr-2" />
           New Note
         </Button>
@@ -56,7 +117,7 @@ export function NotesGrid() {
           <NoteCard
             key={note.id}
             title={note.title}
-            content={note.content}
+            content={note.content || ''}
             onEdit={() => handleEdit(note.id)}
             onDelete={() => handleDelete(note.id)}
           />

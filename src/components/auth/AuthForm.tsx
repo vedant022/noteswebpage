@@ -4,27 +4,65 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { User, LogIn } from "lucide-react";
+import { User, LogIn, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/App";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Replace with actual auth logic
-    login(); // Set authenticated state to true
-    toast({
-      title: isLogin ? "Welcome back!" : "Account created successfully!",
-      description: "Redirecting to dashboard...",
-    });
-    navigate("/dashboard");
+    setIsLoading(true);
+    try {
+      const { data, error } = isLogin 
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
+
+      if (error) throw error;
+
+      if (data.user) {
+        login();
+        toast({
+          title: isLogin ? "Welcome back!" : "Account created successfully!",
+          description: "Redirecting to dashboard...",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,7 +96,7 @@ export function AuthForm() {
             required
           />
         </div>
-        <Button type="submit" className="w-full" size="lg">
+        <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
           {isLogin ? (
             <LogIn className="w-4 h-4 mr-2" />
           ) : (
@@ -67,11 +105,30 @@ export function AuthForm() {
           {isLogin ? "Sign In" : "Sign Up"}
         </Button>
       </form>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+        </div>
+      </div>
+      <Button 
+        variant="outline" 
+        type="button" 
+        className="w-full" 
+        onClick={handleGoogleLogin}
+        disabled={isLoading}
+      >
+        <Mail className="w-4 h-4 mr-2" />
+        Google
+      </Button>
       <div className="text-center">
         <Button
           variant="link"
           onClick={() => setIsLogin(!isLogin)}
           className="text-sm"
+          disabled={isLoading}
         >
           {isLogin
             ? "Don't have an account? Sign Up"

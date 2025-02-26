@@ -7,7 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, useEffect } from "react";
+import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -42,8 +43,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
