@@ -13,6 +13,7 @@ type Note = {
   content: string | null;
   photo_url: string | null;
   voice_url: string | null;
+  user_id: string;
 };
 
 export function NotesGrid() {
@@ -23,6 +24,9 @@ export function NotesGrid() {
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ['notes'],
     queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from('notes')
         .select('*')
@@ -61,12 +65,18 @@ export function NotesGrid() {
   const handleNewNote = async () => {
     setIsCreating(true);
     try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        throw new Error("Not authenticated");
+      }
+
       const { error } = await supabase
         .from('notes')
         .insert([
           { 
             title: 'New Note', 
             content: 'Start writing...',
+            user_id: session.session.user.id
           }
         ]);
 
