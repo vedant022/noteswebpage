@@ -1,39 +1,13 @@
+
 import { useState } from "react";
 import { NoteCard } from "./NoteCard";
-import { PhotoUpload } from "./PhotoUpload";
-import { VoiceRecorder } from "./VoiceRecorder";
-import { FolderList, FolderType } from "../folders/FolderList";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { FolderList } from "../folders/FolderList";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-type Note = {
-  id: string;
-  title: string;
-  content: string | null;
-  photo_url: string | null;
-  voice_url: string | null;
-  user_id: string;
-  folder_id: string | null;
-};
+import { Note, NoteFormData } from "@/types/note";
+import { NotesHeader } from "./NotesHeader";
+import { NoteDialog } from "./NoteDialog";
 
 export function NotesGrid() {
   const { toast } = useToast();
@@ -85,14 +59,7 @@ export function NotesGrid() {
   });
 
   const noteMutation = useMutation({
-    mutationFn: async (note: {
-      id?: string;
-      title: string;
-      content: string | null;
-      photo_url: string | null;
-      voice_url: string | null;
-      folder_id: string | null;
-    }) => {
+    mutationFn: async (note: NoteFormData) => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
 
@@ -156,7 +123,6 @@ export function NotesGrid() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("notes").delete().eq("id", id);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -251,20 +217,12 @@ export function NotesGrid() {
           />
         </div>
         <div className="md:col-span-3 space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold tracking-tight">
-              {selectedFolderId
-                ? `Notes in ${
-                    folders.find((f) => f.id === selectedFolderId)?.name ||
-                    "Selected Folder"
-                  }`
-                : "All Notes"}
-            </h2>
-            <Button onClick={handleNewNote} disabled={isCreating}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Note
-            </Button>
-          </div>
+          <NotesHeader
+            selectedFolderId={selectedFolderId}
+            folders={folders}
+            isCreating={isCreating}
+            onNewNote={handleNewNote}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {notes.map((note) => (
@@ -287,85 +245,24 @@ export function NotesGrid() {
         </div>
       </div>
 
-      <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingNote ? "Edit Note" : "Create New Note"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                Title
-              </label>
-              <Input
-                id="title"
-                value={noteTitle}
-                onChange={(e) => setNoteTitle(e.target.value)}
-                placeholder="Note title"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="content" className="text-sm font-medium">
-                Content
-              </label>
-              <Textarea
-                id="content"
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                placeholder="Note content"
-                rows={5}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Folder</label>
-              <Select
-                value={noteFolderId || ""}
-                onValueChange={(value) => setNoteFolderId(value || null)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {folders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Photo</label>
-              <PhotoUpload 
-                photoUrl={notePhotoUrl} 
-                onChange={setNotePhotoUrl} 
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Voice Note</label>
-              <VoiceRecorder 
-                voiceUrl={noteVoiceUrl} 
-                onChange={setNoteVoiceUrl} 
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleNoteDialogClose}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSaveNote}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NoteDialog
+        open={isNoteDialogOpen}
+        onOpenChange={setIsNoteDialogOpen}
+        editingNote={editingNote}
+        folders={folders}
+        noteTitle={noteTitle}
+        noteContent={noteContent}
+        notePhotoUrl={notePhotoUrl}
+        noteVoiceUrl={noteVoiceUrl}
+        noteFolderId={noteFolderId}
+        onTitleChange={setNoteTitle}
+        onContentChange={setNoteContent}
+        onPhotoUrlChange={setNotePhotoUrl}
+        onVoiceUrlChange={setNoteVoiceUrl}
+        onFolderIdChange={setNoteFolderId}
+        onSave={handleSaveNote}
+        onClose={handleNoteDialogClose}
+      />
     </div>
   );
 }
