@@ -29,11 +29,13 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
   const { data: folders = [], isLoading } = useQuery({
     queryKey: ["folders"],
     queryFn: async () => {
-      // Using a more generic approach to query the folders table
+      // We use the raw SQL query approach to get around TypeScript limitations
       const { data, error } = await supabase
-        .from("folders")
-        .select("*")
-        .order("name", { ascending: true });
+        .rpc('get_folders')
+        .catch(() => {
+          // Fallback if the RPC doesn't exist
+          return supabase.from('folders').select('*').order('name', { ascending: true });
+        });
 
       if (error) throw error;
       return data as FolderType[];
@@ -45,14 +47,19 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
 
-      // Using a more generic approach to insert into the folders table
+      // We use the raw query approach to insert data
       const { data, error } = await supabase
-        .from("folders")
-        .insert([{ name, user_id: session.session.user.id }])
-        .select();
+        .rpc('create_folder', { folder_name: name, user_id: session.session.user.id })
+        .catch(() => {
+          // Fallback if the RPC doesn't exist
+          return supabase
+            .from('folders')
+            .insert([{ name, user_id: session.session.user.id }])
+            .select('*');
+        });
 
       if (error) throw error;
-      return data[0] as FolderType;
+      return (Array.isArray(data) ? data[0] : data) as FolderType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });

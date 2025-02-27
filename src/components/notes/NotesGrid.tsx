@@ -54,11 +54,13 @@ export function NotesGrid() {
   const { data: folders = [] } = useQuery({
     queryKey: ["folders"],
     queryFn: async () => {
-      // Using a more generic approach to query the folders table
+      // We use a more generic approach to work around TypeScript limitations
       const { data, error } = await supabase
-        .from("folders")
-        .select("*")
-        .order("name", { ascending: true });
+        .rpc('get_folders')
+        .catch(() => {
+          // Fallback if the RPC doesn't exist
+          return supabase.from('folders').select('*').order('name', { ascending: true });
+        });
 
       if (error) throw error;
       return data as FolderType[];
@@ -83,7 +85,11 @@ export function NotesGrid() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Note[];
+      // We need to ensure the folder_id exists in the returned data
+      return (data || []).map(note => ({
+        ...note,
+        folder_id: note.folder_id || null
+      })) as Note[];
     },
   });
 
@@ -114,7 +120,7 @@ export function NotesGrid() {
           .eq("id", note.id);
 
         if (error) throw error;
-        return note;
+        return note as Note;
       } else {
         // Create new note
         const { data, error } = await supabase
@@ -132,7 +138,10 @@ export function NotesGrid() {
           .select();
 
         if (error) throw error;
-        return data[0] as Note;
+        return {
+          ...data[0],
+          folder_id: data[0].folder_id || null
+        } as Note;
       }
     },
     onSuccess: () => {
