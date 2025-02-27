@@ -1,10 +1,10 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NoteCard } from "./NoteCard";
 import { PhotoUpload } from "./PhotoUpload";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { FolderList, FolderType } from "../folders/FolderList";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -55,6 +54,7 @@ export function NotesGrid() {
   const { data: folders = [] } = useQuery({
     queryKey: ["folders"],
     queryFn: async () => {
+      // Using a more generic approach to query the folders table
       const { data, error } = await supabase
         .from("folders")
         .select("*")
@@ -78,8 +78,6 @@ export function NotesGrid() {
 
       if (selectedFolderId) {
         query = query.eq("folder_id", selectedFolderId);
-      } else if (selectedFolderId === null) {
-        // This will fetch all notes (including those with null folder_id)
       }
 
       const { data, error } = await query;
@@ -134,7 +132,7 @@ export function NotesGrid() {
           .select();
 
         if (error) throw error;
-        return data[0];
+        return data[0] as Note;
       }
     },
     onSuccess: () => {

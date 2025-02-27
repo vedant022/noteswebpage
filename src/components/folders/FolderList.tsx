@@ -29,6 +29,7 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
   const { data: folders = [], isLoading } = useQuery({
     queryKey: ["folders"],
     queryFn: async () => {
+      // Using a more generic approach to query the folders table
       const { data, error } = await supabase
         .from("folders")
         .select("*")
@@ -44,13 +45,14 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
 
+      // Using a more generic approach to insert into the folders table
       const { data, error } = await supabase
         .from("folders")
         .insert([{ name, user_id: session.session.user.id }])
         .select();
 
       if (error) throw error;
-      return data[0];
+      return data[0] as FolderType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
