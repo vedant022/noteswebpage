@@ -47,7 +47,9 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
         });
 
       if (error) throw error;
-      return data as FolderType;
+      // Extract the first item from the array since we know create_folder returns an array with one item
+      if (!data || data.length === 0) throw new Error("No folder created");
+      return data[0] as FolderType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
