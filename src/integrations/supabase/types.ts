@@ -82,7 +82,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_folder: {
+        Args: {
+          folder_name: string
+          creator_id: string
+        }
+        Returns: {
+          id: string
+          name: string
+          user_id: string
+          created_at: string
+        }[]
+      }
+      get_folders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          user_id: string
+          created_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

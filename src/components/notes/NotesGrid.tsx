@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NoteCard } from "./NoteCard";
 import { PhotoUpload } from "./PhotoUpload";
@@ -54,14 +53,7 @@ export function NotesGrid() {
   const { data: folders = [] } = useQuery({
     queryKey: ["folders"],
     queryFn: async () => {
-      // We use a more generic approach to work around TypeScript limitations
-      const { data, error } = await supabase
-        .rpc('get_folders')
-        .catch(() => {
-          // Fallback if the RPC doesn't exist
-          return supabase.from('folders').select('*').order('name', { ascending: true });
-        });
-
+      const { data, error } = await supabase.rpc('get_folders');
       if (error) throw error;
       return data as FolderType[];
     },
@@ -85,7 +77,6 @@ export function NotesGrid() {
       const { data, error } = await query;
 
       if (error) throw error;
-      // We need to ensure the folder_id exists in the returned data
       return (data || []).map(note => ({
         ...note,
         folder_id: note.folder_id || null
@@ -106,7 +97,6 @@ export function NotesGrid() {
       if (!session.session) throw new Error("Not authenticated");
 
       if (note.id) {
-        // Update existing note
         const { error } = await supabase
           .from("notes")
           .update({
@@ -122,7 +112,6 @@ export function NotesGrid() {
         if (error) throw error;
         return note as Note;
       } else {
-        // Create new note
         const { data, error } = await supabase
           .from("notes")
           .insert([
@@ -198,7 +187,6 @@ export function NotesGrid() {
 
   const handleNoteDialogOpen = (note?: Note) => {
     if (note) {
-      // Edit mode
       setEditingNote(note);
       setNoteTitle(note.title);
       setNoteContent(note.content || "");
@@ -206,7 +194,6 @@ export function NotesGrid() {
       setNoteVoiceUrl(note.voice_url);
       setNoteFolderId(note.folder_id);
     } else {
-      // Create mode
       resetNoteForm();
       setNoteFolderId(selectedFolderId);
     }

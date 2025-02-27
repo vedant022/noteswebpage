@@ -29,14 +29,7 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
   const { data: folders = [], isLoading } = useQuery({
     queryKey: ["folders"],
     queryFn: async () => {
-      // We use the raw SQL query approach to get around TypeScript limitations
-      const { data, error } = await supabase
-        .rpc('get_folders')
-        .catch(() => {
-          // Fallback if the RPC doesn't exist
-          return supabase.from('folders').select('*').order('name', { ascending: true });
-        });
-
+      const { data, error } = await supabase.rpc('get_folders');
       if (error) throw error;
       return data as FolderType[];
     },
@@ -47,19 +40,14 @@ export function FolderList({ onSelectFolder, selectedFolderId }: FolderListProps
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
 
-      // We use the raw query approach to insert data
       const { data, error } = await supabase
-        .rpc('create_folder', { folder_name: name, user_id: session.session.user.id })
-        .catch(() => {
-          // Fallback if the RPC doesn't exist
-          return supabase
-            .from('folders')
-            .insert([{ name, user_id: session.session.user.id }])
-            .select('*');
+        .rpc('create_folder', { 
+          folder_name: name, 
+          creator_id: session.session.user.id 
         });
 
       if (error) throw error;
-      return (Array.isArray(data) ? data[0] : data) as FolderType;
+      return data as FolderType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
