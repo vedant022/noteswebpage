@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Note, NoteFormData } from "@/types/note";
 import { NotesHeader } from "./NotesHeader";
 import { NoteDialog } from "./NoteDialog";
+import { Button } from "@/components/ui/button";
 
 export function NotesGrid() {
   const { toast } = useToast();
@@ -24,7 +25,7 @@ export function NotesGrid() {
   const [notePhotoUrl, setNotePhotoUrl] = useState<string | null>(null);
   const [noteVoiceUrl, setNoteVoiceUrl] = useState<string | null>(null);
   const [noteFolderId, setNoteFolderId] = useState<string | null>(null);
-  const [noteTags, setNoteTags] = useState<string[] | null>(null);
+  const [noteTags, setNoteTags] = useState<string[] | null>([]);
 
   const { data: folders = [] } = useQuery({
     queryKey: ["folders"],
@@ -54,6 +55,7 @@ export function NotesGrid() {
 
       if (error) throw error;
       
+      // Map the notes and ensure tags exist (even if null from the database)
       let filteredNotes = (data || []).map(note => ({
         ...note,
         folder_id: note.folder_id || null,
@@ -121,7 +123,7 @@ export function NotesGrid() {
         return {
           ...data[0],
           folder_id: data[0].folder_id || null,
-          tags: data[0].tags || null
+          tags: data[0].tags || []
         } as Note;
       }
     },
