@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { User, LogIn } from "lucide-react";
+import { User, LogIn, Key } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/App";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +66,15 @@ export function AuthForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeveloperAccess = () => {
+    login();
+    toast({
+      title: "Developer Access Granted",
+      description: "Welcome! You now have full access to the app.",
+    });
+    navigate("/dashboard");
   };
 
   return (
@@ -143,6 +152,18 @@ export function AuthForm() {
         </svg>
         Continue with Google
       </Button>
+      
+      {/* Developer quick access button (only visible in development) */}
+      <Button
+        variant="secondary"
+        type="button"
+        className="w-full mt-2"
+        onClick={handleDeveloperAccess}
+      >
+        <Key className="w-4 h-4 mr-2" />
+        Developer Access (Skip Login)
+      </Button>
+      
       <div className="text-center">
         <Button
           variant="link"

@@ -18,6 +18,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
+  isDeveloperAccess: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -43,31 +44,53 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDeveloperAccess, setIsDeveloperAccess] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
+      setIsDeveloperAccess(false); // Reset developer access state on reload
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
+      if (!session) {
+        setIsDeveloperAccess(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = () => setIsAuthenticated(true);
+  const login = () => {
+    setIsAuthenticated(true);
+    // If there's no Supabase session, it means we're using developer access
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setIsDeveloperAccess(true);
+        console.log("Developer access granted");
+      }
+    });
+  };
+
   const logout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
+    if (isDeveloperAccess) {
+      // Just reset the state for developer access
+      setIsAuthenticated(false);
+      setIsDeveloperAccess(false);
+    } else {
+      // Normal logout via Supabase
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+    }
   };
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, isDeveloperAccess, login, logout }}>
           <TooltipProvider>
             <Toaster />
             <Sonner />
