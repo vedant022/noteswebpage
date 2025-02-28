@@ -2,6 +2,7 @@
 import { Note } from "@/types/note";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PhotoUpload } from "./PhotoUpload";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { RichTextEditor } from "./RichTextEditor";
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FolderType } from "../folders/FolderList";
+import { Lock } from "lucide-react";
 
 interface NoteDialogProps {
   open: boolean;
@@ -33,12 +35,16 @@ interface NoteDialogProps {
   noteVoiceUrl: string | null;
   noteFolderId: string | null;
   noteTags: string[] | null;
+  isPasswordProtected: boolean;
+  password: string | null;
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
   onPhotoUrlChange: (url: string | null) => void;
   onVoiceUrlChange: (url: string | null) => void;
   onFolderIdChange: (folderId: string | null) => void;
   onTagsChange: (tags: string[]) => void;
+  onPasswordProtectedChange: (isProtected: boolean) => void;
+  onPasswordChange: (password: string | null) => void;
   onSave: () => void;
   onClose: () => void;
 }
@@ -54,12 +60,16 @@ export function NoteDialog({
   noteVoiceUrl,
   noteFolderId,
   noteTags,
+  isPasswordProtected,
+  password,
   onTitleChange,
   onContentChange,
   onPhotoUrlChange,
   onVoiceUrlChange,
   onFolderIdChange,
   onTagsChange,
+  onPasswordProtectedChange,
+  onPasswordChange,
   onSave,
   onClose,
 }: NoteDialogProps) {
@@ -92,6 +102,9 @@ export function NoteDialog({
               onChange={onContentChange}
               placeholder="Write your note here..."
             />
+            <div className="text-xs text-muted-foreground">
+              Supports Markdown syntax and rich text formatting
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Tags</label>
@@ -115,6 +128,30 @@ export function NoteDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="password-protected" 
+                checked={isPasswordProtected}
+                onCheckedChange={(checked) => onPasswordProtectedChange(checked === true)}
+              />
+              <label 
+                htmlFor="password-protected" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+              >
+                <Lock className="h-4 w-4 mr-1" />
+                Password Protected
+              </label>
+            </div>
+            {isPasswordProtected && (
+              <Input
+                type="password"
+                placeholder="Enter password"
+                value={password || ""}
+                onChange={(e) => onPasswordChange(e.target.value)}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Photo</label>

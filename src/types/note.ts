@@ -8,6 +8,8 @@ export type Note = {
   user_id: string;
   folder_id: string | null;
   tags: string[] | null;
+  password?: string | null;
+  is_password_protected?: boolean;
 };
 
 export type NoteFormData = {
@@ -18,4 +20,5 @@ export type NoteFormData = {
   voice_url: string | null;
   folder_id: string | null;
   tags: string[] | null;
+  password?: string | null;
 };

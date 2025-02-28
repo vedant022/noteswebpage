@@ -1,6 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pen, Trash, Image, Mic, Hash } from "lucide-react";
+import { Pen, Trash, Image, Mic, Hash, Lock } from "lucide-react";
+import { marked } from "marked";
 
 interface NoteCardProps {
   title: string;
@@ -8,6 +10,7 @@ interface NoteCardProps {
   photoUrl?: string | null;
   voiceUrl?: string | null;
   tags?: string[] | null; 
+  isPasswordProtected?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onTagClick?: (tag: string) => void;
@@ -19,29 +22,57 @@ export function NoteCard({
   photoUrl, 
   voiceUrl, 
   tags = [],
+  isPasswordProtected = false,
   onEdit, 
   onDelete,
   onTagClick
 }: NoteCardProps) {
+  // Function to safely render content (HTML from rich text editor or Markdown)
   const renderContent = () => {
     if (!content) return null;
     
+    let renderedContent;
+    
+    // Check if content contains HTML
     if (content.includes('<')) {
-      return (
-        <div 
-          className="text-sm text-muted-foreground line-clamp-3 overflow-hidden"
-          dangerouslySetInnerHTML={{ __html: content }} 
-        />
-      );
+      renderedContent = content;
+    } 
+    // If it looks like markdown (has common md patterns)
+    else if (
+      content.includes('#') || 
+      content.includes('*') || 
+      content.includes('```') ||
+      content.includes('>')
+    ) {
+      try {
+        renderedContent = marked.parse(content);
+      } catch {
+        // If markdown parsing fails, display as plain text
+        renderedContent = content;
+      }
+    } 
+    // Plain text
+    else {
+      renderedContent = content;
     }
     
-    return <p className="text-sm text-muted-foreground line-clamp-3">{content}</p>;
+    return (
+      <div 
+        className="text-sm text-muted-foreground line-clamp-3 overflow-hidden"
+        dangerouslySetInnerHTML={{ __html: renderedContent }} 
+      />
+    );
   };
 
   return (
     <Card className="w-full h-full transition-all duration-300 hover:shadow-lg animate-fade-up">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-bold">{title}</CardTitle>
+        <CardTitle className="text-lg font-bold flex items-center gap-2">
+          {title}
+          {isPasswordProtected && (
+            <Lock className="w-4 h-4 text-yellow-500" />
+          )}
+        </CardTitle>
         <div className="flex space-x-2">
           <Button
             variant="ghost"

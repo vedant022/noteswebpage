@@ -18,6 +18,7 @@ export function NotesGrid() {
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // State for note form
   const [noteTitle, setNoteTitle] = useState("");
@@ -26,6 +27,8 @@ export function NotesGrid() {
   const [noteVoiceUrl, setNoteVoiceUrl] = useState<string | null>(null);
   const [noteFolderId, setNoteFolderId] = useState<string | null>(null);
   const [noteTags, setNoteTags] = useState<string[] | null>([]);
+  const [notePassword, setNotePassword] = useState<string | null>(null);
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
 
   const { data: folders = [] } = useQuery({
     queryKey: ["folders"],
@@ -37,7 +40,7 @@ export function NotesGrid() {
   });
 
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ["notes", selectedFolderId, selectedTag],
+    queryKey: ["notes", selectedFolderId, selectedTag, searchTerm],
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
@@ -59,13 +62,25 @@ export function NotesGrid() {
       let filteredNotes = (data || []).map(note => ({
         ...note,
         folder_id: note.folder_id || null,
-        tags: note.tags || []
+        tags: note.tags || [],
+        is_password_protected: !!note.password
       })) as Note[];
+      
+      // Apply filters
       
       // Filter by tag if selected
       if (selectedTag) {
         filteredNotes = filteredNotes.filter(note => 
           note.tags && note.tags.includes(selectedTag)
+        );
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filteredNotes = filteredNotes.filter(note => 
+          note.title.toLowerCase().includes(term) || 
+          (note.content && note.content.toLowerCase().includes(term))
         );
       }
       
@@ -87,18 +102,22 @@ export function NotesGrid() {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
 
+      // Prepare note data for database
+      const noteData = {
+        title: note.title,
+        content: note.content,
+        photo_url: note.photo_url,
+        voice_url: note.voice_url,
+        folder_id: note.folder_id,
+        tags: note.tags,
+        updated_at: new Date().toISOString(),
+        password: note.password
+      };
+
       if (note.id) {
         const { error } = await supabase
           .from("notes")
-          .update({
-            title: note.title,
-            content: note.content,
-            photo_url: note.photo_url,
-            voice_url: note.voice_url,
-            folder_id: note.folder_id,
-            tags: note.tags,
-            updated_at: new Date().toISOString(),
-          })
+          .update(noteData)
           .eq("id", note.id);
 
         if (error) throw error;
@@ -108,12 +127,7 @@ export function NotesGrid() {
           .from("notes")
           .insert([
             {
-              title: note.title,
-              content: note.content,
-              photo_url: note.photo_url,
-              voice_url: note.voice_url,
-              folder_id: note.folder_id,
-              tags: note.tags,
+              ...noteData,
               user_id: session.session.user.id,
             },
           ])
@@ -123,7 +137,8 @@ export function NotesGrid() {
         return {
           ...data[0],
           folder_id: data[0].folder_id || null,
-          tags: data[0].tags || []
+          tags: data[0].tags || [],
+          is_password_protected: !!data[0].password
         } as Note;
       }
     },
@@ -175,12 +190,27 @@ export function NotesGrid() {
     setNoteVoiceUrl(null);
     setNoteFolderId(null);
     setNoteTags([]);
+    setNotePassword(null);
+    setIsPasswordProtected(false);
     setEditingNote(null);
     setIsCreating(false);
   };
 
   const handleNoteDialogOpen = (note?: Note) => {
     if (note) {
+      // Check if note is password protected
+      if (note.is_password_protected) {
+        const password = prompt("This note is password protected. Please enter the password:");
+        if (!password || !verifyNotePassword(note, password)) {
+          toast({
+            title: "Access Denied",
+            description: "Incorrect password for this note",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       setEditingNote(note);
       setNoteTitle(note.title);
       setNoteContent(note.content || "");
@@ -188,6 +218,7 @@ export function NotesGrid() {
       setNoteVoiceUrl(note.voice_url);
       setNoteFolderId(note.folder_id);
       setNoteTags(note.tags);
+      setIsPasswordProtected(note.is_password_protected || false);
     } else {
       resetNoteForm();
       setNoteFolderId(selectedFolderId);
@@ -198,6 +229,12 @@ export function NotesGrid() {
   const handleNoteDialogClose = () => {
     resetNoteForm();
     setIsNoteDialogOpen(false);
+  };
+
+  // Simple password verification function
+  const verifyNotePassword = (note: Note, password: string) => {
+    // In a real app, you'd use hashing and more secure methods
+    return password === note.password;
   };
 
   const handleSaveNote = () => {
@@ -218,6 +255,7 @@ export function NotesGrid() {
       voice_url: noteVoiceUrl,
       folder_id: noteFolderId,
       tags: noteTags,
+      password: isPasswordProtected ? notePassword : null,
     });
   };
 
@@ -235,6 +273,10 @@ export function NotesGrid() {
 
   const handleTagSelect = (tag: string | null) => {
     setSelectedTag(tag);
+  };
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
   };
 
   if (isLoading) {
@@ -284,6 +326,7 @@ export function NotesGrid() {
             folders={folders}
             isCreating={isCreating}
             onNewNote={handleNewNote}
+            onSearch={handleSearch}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -295,6 +338,7 @@ export function NotesGrid() {
                 photoUrl={note.photo_url}
                 voiceUrl={note.voice_url}
                 tags={note.tags}
+                isPasswordProtected={note.is_password_protected}
                 onEdit={() => handleEdit(note)}
                 onDelete={() => handleDelete(note.id)}
                 onTagClick={handleTagSelect}
@@ -320,12 +364,16 @@ export function NotesGrid() {
         noteVoiceUrl={noteVoiceUrl}
         noteFolderId={noteFolderId}
         noteTags={noteTags}
+        isPasswordProtected={isPasswordProtected}
+        password={notePassword}
         onTitleChange={setNoteTitle}
         onContentChange={setNoteContent}
         onPhotoUrlChange={setNotePhotoUrl}
         onVoiceUrlChange={setNoteVoiceUrl}
         onFolderIdChange={setNoteFolderId}
         onTagsChange={setNoteTags}
+        onPasswordChange={setNotePassword}
+        onPasswordProtectedChange={setIsPasswordProtected}
         onSave={handleSaveNote}
         onClose={handleNoteDialogClose}
       />
