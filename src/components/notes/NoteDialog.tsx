@@ -2,9 +2,10 @@
 import { Note } from "@/types/note";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { PhotoUpload } from "./PhotoUpload";
 import { VoiceRecorder } from "./VoiceRecorder";
+import { RichTextEditor } from "./RichTextEditor";
+import { TagInput } from "./TagInput";
 import {
   Dialog,
   DialogContent,
@@ -31,11 +32,13 @@ interface NoteDialogProps {
   notePhotoUrl: string | null;
   noteVoiceUrl: string | null;
   noteFolderId: string | null;
+  noteTags: string[] | null;
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
   onPhotoUrlChange: (url: string | null) => void;
   onVoiceUrlChange: (url: string | null) => void;
   onFolderIdChange: (folderId: string | null) => void;
+  onTagsChange: (tags: string[]) => void;
   onSave: () => void;
   onClose: () => void;
 }
@@ -50,17 +53,19 @@ export function NoteDialog({
   notePhotoUrl,
   noteVoiceUrl,
   noteFolderId,
+  noteTags,
   onTitleChange,
   onContentChange,
   onPhotoUrlChange,
   onVoiceUrlChange,
   onFolderIdChange,
+  onTagsChange,
   onSave,
   onClose,
 }: NoteDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingNote ? "Edit Note" : "Create New Note"}
@@ -82,13 +87,15 @@ export function NoteDialog({
             <label htmlFor="content" className="text-sm font-medium">
               Content
             </label>
-            <Textarea
-              id="content"
-              value={noteContent}
-              onChange={(e) => onContentChange(e.target.value)}
-              placeholder="Note content"
-              rows={5}
+            <RichTextEditor
+              content={noteContent}
+              onChange={onContentChange}
+              placeholder="Write your note here..."
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Tags</label>
+            <TagInput tags={noteTags} onChange={onTagsChange} />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Folder</label>

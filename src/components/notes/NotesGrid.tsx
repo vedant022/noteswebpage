@@ -16,6 +16,7 @@ export function NotesGrid() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // State for note form
   const [noteTitle, setNoteTitle] = useState("");
@@ -23,6 +24,7 @@ export function NotesGrid() {
   const [notePhotoUrl, setNotePhotoUrl] = useState<string | null>(null);
   const [noteVoiceUrl, setNoteVoiceUrl] = useState<string | null>(null);
   const [noteFolderId, setNoteFolderId] = useState<string | null>(null);
+  const [noteTags, setNoteTags] = useState<string[] | null>(null);
 
   const { data: folders = [] } = useQuery({
     queryKey: ["folders"],
@@ -34,7 +36,7 @@ export function NotesGrid() {
   });
 
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ["notes", selectedFolderId],
+    queryKey: ["notes", selectedFolderId, selectedTag],
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error("Not authenticated");
@@ -51,12 +53,32 @@ export function NotesGrid() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return (data || []).map(note => ({
+      
+      let filteredNotes = (data || []).map(note => ({
         ...note,
-        folder_id: note.folder_id || null
+        folder_id: note.folder_id || null,
+        tags: note.tags || []
       })) as Note[];
+      
+      // Filter by tag if selected
+      if (selectedTag) {
+        filteredNotes = filteredNotes.filter(note => 
+          note.tags && note.tags.includes(selectedTag)
+        );
+      }
+      
+      return filteredNotes;
     },
   });
+
+  // Extract all unique tags from notes
+  const allTags = Array.from(
+    new Set(
+      notes
+        .flatMap((note) => note.tags || [])
+        .filter(Boolean)
+    )
+  );
 
   const noteMutation = useMutation({
     mutationFn: async (note: NoteFormData) => {
@@ -72,6 +94,7 @@ export function NotesGrid() {
             photo_url: note.photo_url,
             voice_url: note.voice_url,
             folder_id: note.folder_id,
+            tags: note.tags,
             updated_at: new Date().toISOString(),
           })
           .eq("id", note.id);
@@ -88,6 +111,7 @@ export function NotesGrid() {
               photo_url: note.photo_url,
               voice_url: note.voice_url,
               folder_id: note.folder_id,
+              tags: note.tags,
               user_id: session.session.user.id,
             },
           ])
@@ -96,7 +120,8 @@ export function NotesGrid() {
         if (error) throw error;
         return {
           ...data[0],
-          folder_id: data[0].folder_id || null
+          folder_id: data[0].folder_id || null,
+          tags: data[0].tags || null
         } as Note;
       }
     },
@@ -147,6 +172,7 @@ export function NotesGrid() {
     setNotePhotoUrl(null);
     setNoteVoiceUrl(null);
     setNoteFolderId(null);
+    setNoteTags([]);
     setEditingNote(null);
     setIsCreating(false);
   };
@@ -159,6 +185,7 @@ export function NotesGrid() {
       setNotePhotoUrl(note.photo_url);
       setNoteVoiceUrl(note.voice_url);
       setNoteFolderId(note.folder_id);
+      setNoteTags(note.tags);
     } else {
       resetNoteForm();
       setNoteFolderId(selectedFolderId);
@@ -188,6 +215,7 @@ export function NotesGrid() {
       photo_url: notePhotoUrl,
       voice_url: noteVoiceUrl,
       folder_id: noteFolderId,
+      tags: noteTags,
     });
   };
 
@@ -203,6 +231,10 @@ export function NotesGrid() {
     deleteMutation.mutate(id);
   };
 
+  const handleTagSelect = (tag: string | null) => {
+    setSelectedTag(tag);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -210,11 +242,39 @@ export function NotesGrid() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 space-y-6">
           <FolderList
             onSelectFolder={setSelectedFolderId}
             selectedFolderId={selectedFolderId}
           />
+          
+          {/* Tags list */}
+          {allTags.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Tags</h3>
+              </div>
+              <div className="space-y-1">
+                <Button
+                  variant={selectedTag === null ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => handleTagSelect(null)}
+                >
+                  All Tags
+                </Button>
+                {allTags.map((tag) => (
+                  <Button
+                    key={tag}
+                    variant={selectedTag === tag ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => handleTagSelect(tag)}
+                  >
+                    #{tag}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="md:col-span-3 space-y-4">
           <NotesHeader
@@ -232,8 +292,10 @@ export function NotesGrid() {
                 content={note.content || ""}
                 photoUrl={note.photo_url}
                 voiceUrl={note.voice_url}
+                tags={note.tags}
                 onEdit={() => handleEdit(note)}
                 onDelete={() => handleDelete(note.id)}
+                onTagClick={handleTagSelect}
               />
             ))}
             {notes.length === 0 && (
@@ -255,11 +317,13 @@ export function NotesGrid() {
         notePhotoUrl={notePhotoUrl}
         noteVoiceUrl={noteVoiceUrl}
         noteFolderId={noteFolderId}
+        noteTags={noteTags}
         onTitleChange={setNoteTitle}
         onContentChange={setNoteContent}
         onPhotoUrlChange={setNotePhotoUrl}
         onVoiceUrlChange={setNoteVoiceUrl}
         onFolderIdChange={setNoteFolderId}
+        onTagsChange={setNoteTags}
         onSave={handleSaveNote}
         onClose={handleNoteDialogClose}
       />

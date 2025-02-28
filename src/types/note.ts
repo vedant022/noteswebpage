@@ -7,6 +7,7 @@ export type Note = {
   voice_url: string | null;
   user_id: string;
   folder_id: string | null;
+  tags: string[] | null;
 };
 
 export type NoteFormData = {
@@ -16,4 +17,5 @@ export type NoteFormData = {
   photo_url: string | null;
   voice_url: string | null;
   folder_id: string | null;
+  tags: string[] | null;
 };
