@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { NoteCard } from "./NoteCard";
-import { FolderList } from "../folders/FolderList";
+import { FolderList, FolderType } from "../folders/FolderList";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
