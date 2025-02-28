@@ -59,12 +59,17 @@ export function NotesGrid() {
       if (error) throw error;
       
       // Map the notes and ensure tags exist (even if null from the database)
-      let filteredNotes = (data || []).map(note => ({
-        ...note,
-        folder_id: note.folder_id || null,
-        tags: note.tags || [],
-        is_password_protected: !!note.password
-      })) as Note[];
+      // Also, add is_password_protected based on whether a password exists
+      let filteredNotes = (data || []).map(note => {
+        // Cast the database response to include all our needed fields
+        const typedNote = note as any;
+        return {
+          ...typedNote,
+          folder_id: typedNote.folder_id || null,
+          tags: typedNote.tags || [],
+          is_password_protected: !!typedNote.password
+        } as Note;
+      });
       
       // Apply filters
       
@@ -121,7 +126,10 @@ export function NotesGrid() {
           .eq("id", note.id);
 
         if (error) throw error;
-        return note as Note;
+        return {
+          ...note,
+          is_password_protected: !!note.password
+        } as Note;
       } else {
         const { data, error } = await supabase
           .from("notes")
@@ -134,11 +142,15 @@ export function NotesGrid() {
           .select();
 
         if (error) throw error;
+
+        // Cast the response to access all fields
+        const newNote = data[0] as any;
+        
         return {
-          ...data[0],
-          folder_id: data[0].folder_id || null,
-          tags: data[0].tags || [],
-          is_password_protected: !!data[0].password
+          ...newNote,
+          folder_id: newNote.folder_id || null,
+          tags: newNote.tags || [],
+          is_password_protected: !!newNote.password
         } as Note;
       }
     },
@@ -219,6 +231,7 @@ export function NotesGrid() {
       setNoteFolderId(note.folder_id);
       setNoteTags(note.tags);
       setIsPasswordProtected(note.is_password_protected || false);
+      setNotePassword(note.password || null);
     } else {
       resetNoteForm();
       setNoteFolderId(selectedFolderId);
@@ -242,6 +255,16 @@ export function NotesGrid() {
       toast({
         title: "Error",
         description: "Note title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password if protection is enabled
+    if (isPasswordProtected && !notePassword) {
+      toast({
+        title: "Error",
+        description: "Password is required when password protection is enabled",
         variant: "destructive",
       });
       return;

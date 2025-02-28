@@ -39,6 +39,7 @@ export type Database = {
           created_at: string
           folder_id: string | null
           id: string
+          password: string | null
           photo_url: string | null
           tags: string[] | null
           title: string
@@ -51,6 +52,7 @@ export type Database = {
           created_at?: string
           folder_id?: string | null
           id?: string
+          password?: string | null
           photo_url?: string | null
           tags?: string[] | null
           title: string
@@ -63,6 +65,7 @@ export type Database = {
           created_at?: string
           folder_id?: string | null
           id?: string
+          password?: string | null
           photo_url?: string | null
           tags?: string[] | null
           title?: string
