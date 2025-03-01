@@ -234,6 +234,7 @@ export function NotesGrid() {
       setNotePassword(note.password || null);
     } else {
       resetNoteForm();
+      setIsCreating(true);
       setNoteFolderId(selectedFolderId);
     }
     setIsNoteDialogOpen(true);
@@ -403,3 +404,4 @@ export function NotesGrid() {
     </div>
   );
 }
+
