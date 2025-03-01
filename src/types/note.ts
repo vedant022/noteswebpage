@@ -1,24 +1,26 @@
 
-export type Note = {
+export interface Note {
   id: string;
   title: string;
   content: string | null;
   photo_url: string | null;
   voice_url: string | null;
-  user_id: string;
   folder_id: string | null;
   tags: string[] | null;
-  password?: string | null;
-  is_password_protected?: boolean;
-};
+  password: string | null;
+  is_password_protected: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
 
-export type NoteFormData = {
+export interface NoteFormData {
   id?: string;
   title: string;
-  content: string | null;
+  content: string;
   photo_url: string | null;
   voice_url: string | null;
   folder_id: string | null;
   tags: string[] | null;
-  password?: string | null;
-};
+  password: string | null;
+}

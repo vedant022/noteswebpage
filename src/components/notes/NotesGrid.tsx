@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NoteCard } from "./NoteCard";
 import { FolderList, FolderType } from "../folders/FolderList";
@@ -93,15 +92,6 @@ export function NotesGrid() {
     },
   });
 
-  // Extract all unique tags from notes
-  const allTags = Array.from(
-    new Set(
-      notes
-        .flatMap((note) => note.tags || [])
-        .filter(Boolean)
-    )
-  );
-
   const noteMutation = useMutation({
     mutationFn: async (note: NoteFormData) => {
       const { data: session } = await supabase.auth.getSession();
@@ -131,6 +121,7 @@ export function NotesGrid() {
           is_password_protected: !!note.password
         } as Note;
       } else {
+        // Creating a new note - add user_id to the note data
         const { data, error } = await supabase
           .from("notes")
           .insert([
@@ -141,7 +132,10 @@ export function NotesGrid() {
           ])
           .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error creating note:", error);
+          throw error;
+        }
 
         // Cast the response to access all fields
         const newNote = data[0] as any;
@@ -158,6 +152,7 @@ export function NotesGrid() {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       resetNoteForm();
       setIsNoteDialogOpen(false);
+      setIsCreating(false);
       toast({
         title: "Success",
         description: editingNote
@@ -166,6 +161,7 @@ export function NotesGrid() {
       });
     },
     onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -270,6 +266,17 @@ export function NotesGrid() {
       });
       return;
     }
+
+    console.log("Saving note:", {
+      id: editingNote?.id,
+      title: noteTitle,
+      content: noteContent,
+      photo_url: notePhotoUrl,
+      voice_url: noteVoiceUrl,
+      folder_id: noteFolderId,
+      tags: noteTags,
+      password: isPasswordProtected ? notePassword : null,
+    });
 
     noteMutation.mutate({
       id: editingNote?.id,

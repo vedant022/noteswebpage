@@ -73,8 +73,17 @@ export function NoteDialog({
   onSave,
   onClose,
 }: NoteDialogProps) {
+  // Handle dialog close properly
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // If dialog is closing, call the onClose handler
+      onClose();
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
