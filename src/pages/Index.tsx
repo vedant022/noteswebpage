@@ -2,6 +2,7 @@
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -10,6 +11,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50">
       <div className="container py-10">
+        <div className="flex justify-end">
+          <ThemeToggle />
+        </div>
         <div className="flex min-h-[80vh] flex-col items-center justify-center">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold tracking-tight mb-4">Notetaking App</h1>

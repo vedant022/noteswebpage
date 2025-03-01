@@ -12,8 +12,15 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
+    // For SSR or when localStorage is not available
+    if (typeof window === "undefined") return "light";
+    
+    // Check localStorage first
     const savedTheme = localStorage.getItem("theme") as Theme;
-    return savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    if (savedTheme) return savedTheme;
+    
+    // Then check user preference
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
