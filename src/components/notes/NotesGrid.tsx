@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NoteCard } from "./NoteCard";
 import { FolderList, FolderType } from "../folders/FolderList";
@@ -207,7 +208,12 @@ export function NotesGrid() {
     setIsCreating(false);
   };
 
-  // Only updating the handleNoteDialogOpen function to ensure it correctly opens the dialog
+  // Simple password verification function
+  const verifyNotePassword = (note: Note, password: string) => {
+    // In a real app, you'd use hashing and more secure methods
+    return password === note.password;
+  };
+
   const handleNoteDialogOpen = (note?: Note) => {
     if (note) {
       // Check if note is password protected
@@ -238,6 +244,43 @@ export function NotesGrid() {
       setNoteFolderId(selectedFolderId);
     }
     setIsNoteDialogOpen(true);
+  };
+
+  const handleNoteDialogClose = () => {
+    resetNoteForm();
+    setIsNoteDialogOpen(false);
+  };
+
+  const handleSaveNote = () => {
+    if (!noteTitle.trim()) {
+      toast({
+        title: "Error",
+        description: "Note title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password if protection is enabled
+    if (isPasswordProtected && !notePassword) {
+      toast({
+        title: "Error",
+        description: "Password is required when password protection is enabled",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    noteMutation.mutate({
+      id: editingNote?.id,
+      title: noteTitle,
+      content: noteContent,
+      photo_url: notePhotoUrl,
+      voice_url: noteVoiceUrl,
+      folder_id: noteFolderId,
+      tags: noteTags,
+      password: isPasswordProtected ? notePassword : null,
+    });
   };
 
   const handleNewNote = () => {
