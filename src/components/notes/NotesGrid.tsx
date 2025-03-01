@@ -92,6 +92,15 @@ export function NotesGrid() {
     },
   });
 
+  // Extract all unique tags from notes
+  const allTags = Array.from(
+    new Set(
+      notes
+        .flatMap((note) => note.tags || [])
+        .filter(Boolean)
+    )
+  );
+
   const noteMutation = useMutation({
     mutationFn: async (note: NoteFormData) => {
       const { data: session } = await supabase.auth.getSession();
