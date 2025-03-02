@@ -32,13 +32,19 @@ export function NoteCard({ note, onEdit, onDelete, onTagClick }: NoteCardProps) 
           </CardTitle>
           <div className="flex items-center space-x-1">
             {note.is_password_protected && (
-              <Lock className="h-4 w-4 text-orange-500" title="Password protected" />
+              <div className="tooltip" aria-label="Password protected">
+                <Lock className="h-4 w-4 text-orange-500" />
+              </div>
             )}
             {note.photo_url && (
-              <Image className="h-4 w-4 text-blue-500" title="Has image" />
+              <div className="tooltip" aria-label="Has image">
+                <Image className="h-4 w-4 text-blue-500" />
+              </div>
             )}
             {note.voice_url && (
-              <Mic className="h-4 w-4 text-green-500" title="Has voice note" />
+              <div className="tooltip" aria-label="Has voice note">
+                <Mic className="h-4 w-4 text-green-500" />
+              </div>
             )}
           </div>
         </div>

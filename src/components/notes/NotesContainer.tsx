@@ -28,14 +28,9 @@ export function NotesContainer({
       {notes.map((note) => (
         <NoteCard
           key={note.id}
-          title={note.title}
-          content={note.content || ""}
-          photoUrl={note.photo_url}
-          voiceUrl={note.voice_url}
-          tags={note.tags}
-          isPasswordProtected={note.is_password_protected}
-          onEdit={() => onEdit(note)}
-          onDelete={() => onDelete(note.id)}
+          note={note}
+          onEdit={onEdit}
+          onDelete={onDelete}
           onTagClick={onTagClick}
         />
       ))}
