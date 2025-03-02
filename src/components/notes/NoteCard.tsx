@@ -1,131 +1,91 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Note } from "@/types/note";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pen, Trash, Image, Mic, Hash, Lock } from "lucide-react";
-import { marked } from "marked";
+import { Badge } from "@/components/ui/badge";
+import { Edit2, Trash2, Lock, Image, Mic } from "lucide-react";
+import { SpeechButton } from "./SpeechButton";
+import { formatDistanceToNow } from "date-fns";
 
 interface NoteCardProps {
-  title: string;
-  content: string;
-  photoUrl?: string | null;
-  voiceUrl?: string | null;
-  tags?: string[] | null; 
-  isPasswordProtected?: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onTagClick?: (tag: string) => void;
+  note: Note;
+  onEdit: (note: Note) => void;
+  onDelete: (id: string) => void;
+  onTagClick: (tag: string) => void;
 }
 
-export function NoteCard({ 
-  title, 
-  content, 
-  photoUrl, 
-  voiceUrl, 
-  tags = [],
-  isPasswordProtected = false,
-  onEdit, 
-  onDelete,
-  onTagClick
-}: NoteCardProps) {
-  // Function to safely render content (HTML from rich text editor or Markdown)
-  const renderContent = () => {
-    if (!content) return null;
-    
-    let renderedContent;
-    
-    // Check if content contains HTML
-    if (content.includes('<')) {
-      renderedContent = content;
-    } 
-    // If it looks like markdown (has common md patterns)
-    else if (
-      content.includes('#') || 
-      content.includes('*') || 
-      content.includes('```') ||
-      content.includes('>')
-    ) {
-      try {
-        renderedContent = marked.parse(content);
-      } catch {
-        // If markdown parsing fails, display as plain text
-        renderedContent = content;
-      }
-    } 
-    // Plain text
-    else {
-      renderedContent = content;
-    }
-    
-    return (
-      <div 
-        className="text-sm text-muted-foreground line-clamp-3 overflow-hidden"
-        dangerouslySetInnerHTML={{ __html: renderedContent }} 
-      />
-    );
-  };
+export function NoteCard({ note, onEdit, onDelete, onTagClick }: NoteCardProps) {
+  // Format date for display
+  const formattedDate = formatDistanceToNow(new Date(note.updated_at), { addSuffix: true });
+  
+  // Format content preview by removing any HTML tags and limiting length
+  const contentPreview = note.content 
+    ? note.content.replace(/<[^>]*>/g, '').slice(0, 150) + (note.content.length > 150 ? '...' : '')
+    : '';
 
   return (
-    <Card className="w-full h-full transition-all duration-300 hover:shadow-lg animate-fade-up">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-bold flex items-center gap-2">
-          {title}
-          {isPasswordProtected && (
-            <Lock className="w-4 h-4 text-yellow-500" />
-          )}
-        </CardTitle>
-        <div className="flex space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onEdit}
-            className="w-8 h-8"
-          >
-            <Pen className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            className="w-8 h-8 text-destructive"
-          >
-            <Trash className="w-4 h-4" />
-          </Button>
+    <Card className="h-full flex flex-col transition-all hover:shadow-md">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-xl font-bold truncate" title={note.title}>
+            {note.title}
+          </CardTitle>
+          <div className="flex items-center space-x-1">
+            {note.is_password_protected && (
+              <Lock className="h-4 w-4 text-orange-500" title="Password protected" />
+            )}
+            {note.photo_url && (
+              <Image className="h-4 w-4 text-blue-500" title="Has image" />
+            )}
+            {note.voice_url && (
+              <Mic className="h-4 w-4 text-green-500" title="Has voice note" />
+            )}
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">{formattedDate}</p>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {renderContent()}
-        
-        <div className="flex flex-wrap gap-2 pt-2">
-          {tags && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {tags.map((tag, index) => (
-                <button
-                  key={index}
-                  onClick={() => onTagClick && onTagClick(tag)}
-                  className="inline-flex items-center text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 rounded-full"
-                >
-                  <Hash className="w-3 h-3 mr-1" />
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
-          
-          {photoUrl && (
-            <div className="text-muted-foreground">
-              <Image className="w-4 h-4 inline-block mr-1" />
-              <span className="text-xs">Photo</span>
-            </div>
-          )}
-          
-          {voiceUrl && (
-            <div className="text-muted-foreground">
-              <Mic className="w-4 h-4 inline-block mr-1" />
-              <span className="text-xs">Voice</span>
-            </div>
-          )}
-        </div>
+      <CardContent className="pb-2 flex-grow">
+        <p className="text-sm text-muted-foreground">
+          {contentPreview || "No content"}
+        </p>
       </CardContent>
+      <CardFooter className="flex flex-col items-start pt-2 space-y-2">
+        {note.tags && note.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {note.tags.map((tag) => (
+              <Badge 
+                key={tag} 
+                variant="secondary" 
+                className="cursor-pointer hover:bg-secondary/80"
+                onClick={() => onTagClick(tag)}
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-between w-full mt-2">
+          <SpeechButton text={note.content || ""} title={note.title} />
+          <div className="space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onEdit(note)}
+            >
+              <Edit2 className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={() => onDelete(note.id)}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

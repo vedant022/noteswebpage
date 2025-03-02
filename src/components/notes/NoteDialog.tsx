@@ -7,6 +7,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { RichTextEditor } from "./RichTextEditor";
 import { TagInput } from "./TagInput";
+import { SpeechButton } from "./SpeechButton";
 import {
   Dialog,
   DialogContent,
@@ -103,9 +104,12 @@ export function NoteDialog({
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="content" className="text-sm font-medium">
-              Content
-            </label>
+            <div className="flex justify-between items-center">
+              <label htmlFor="content" className="text-sm font-medium">
+                Content
+              </label>
+              {noteContent && <SpeechButton text={noteContent} title={noteTitle} />}
+            </div>
             <RichTextEditor
               content={noteContent}
               onChange={onContentChange}
