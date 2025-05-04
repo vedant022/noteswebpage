@@ -27,4 +27,5 @@ export interface NoteFormData {
   password: string | null; // Legacy field - will be phased out
   password_hash?: string | null; // New field for storing hashed password
   password_salt?: string | null; // New field for storing password salt
+  is_password_protected?: boolean; // Added to track password protection status
 }

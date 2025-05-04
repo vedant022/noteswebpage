@@ -1,29 +1,17 @@
-
-import { Note } from "@/types/note";
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { RichTextEditor } from "./RichTextEditor";
 import { PhotoUpload } from "./PhotoUpload";
 import { VoiceRecorder } from "./VoiceRecorder";
-import { RichTextEditor } from "./RichTextEditor";
 import { TagInput } from "./TagInput";
-import { SpeechButton } from "./SpeechButton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FolderType } from "../folders/FolderList";
-import { Lock } from "lucide-react";
+import { Note } from "@/types/note";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface NoteDialogProps {
   open: boolean;
@@ -38,14 +26,15 @@ interface NoteDialogProps {
   noteTags: string[] | null;
   isPasswordProtected: boolean;
   password: string | null;
+  passwordValidation: string | null;
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
   onPhotoUrlChange: (url: string | null) => void;
   onVoiceUrlChange: (url: string | null) => void;
   onFolderIdChange: (folderId: string | null) => void;
   onTagsChange: (tags: string[]) => void;
-  onPasswordProtectedChange: (isProtected: boolean) => void;
   onPasswordChange: (password: string | null) => void;
+  onPasswordProtectedChange: (isProtected: boolean) => void;
   onSave: () => void;
   onClose: () => void;
 }
@@ -63,135 +52,125 @@ export function NoteDialog({
   noteTags,
   isPasswordProtected,
   password,
+  passwordValidation,
   onTitleChange,
   onContentChange,
   onPhotoUrlChange,
   onVoiceUrlChange,
   onFolderIdChange,
   onTagsChange,
-  onPasswordProtectedChange,
   onPasswordChange,
+  onPasswordProtectedChange,
   onSave,
   onClose,
 }: NoteDialogProps) {
-  // Handle dialog close properly
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      // If dialog is closing, call the onClose handler
-      onClose();
-    }
-    onOpenChange(newOpen);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {editingNote ? "Edit Note" : "Create New Note"}
-          </DialogTitle>
+          <DialogTitle>{editingNote ? "Edit Note" : "Create Note"}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">
-              Title
-            </label>
-            <Input
-              id="title"
-              value={noteTitle}
+        
+        {/* Form inputs */}
+        <div className="space-y-4">
+          {/* Title input */}
+          <div className="grid gap-2">
+            <Label htmlFor="title">Title</Label>
+            <Input 
+              id="title" 
+              value={noteTitle} 
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="Note title"
             />
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label htmlFor="content" className="text-sm font-medium">
-                Content
-              </label>
-              {noteContent && <SpeechButton text={noteContent} title={noteTitle} />}
-            </div>
-            <RichTextEditor
-              content={noteContent}
-              onChange={onContentChange}
-              placeholder="Write your note here..."
+          
+          {/* Content textarea/rich text editor */}
+          <div className="grid gap-2">
+            <Label htmlFor="content">Content</Label>
+            <RichTextEditor 
+              id="content"
+              content={noteContent} 
+              onChange={onContentChange} 
             />
-            <div className="text-xs text-muted-foreground">
-              Supports Markdown syntax and rich text formatting
-            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Tags</label>
-            <TagInput tags={noteTags} onChange={onTagsChange} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Folder</label>
-            <Select
+          
+          {/* Folder selector */}
+          <div className="grid gap-2">
+            <Label htmlFor="folder">Folder</Label>
+            <select
+              id="folder"
               value={noteFolderId || ""}
-              onValueChange={(value) => onFolderIdChange(value || null)}
+              onChange={(e) => onFolderIdChange(e.target.value || null)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a folder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">None</SelectItem>
-                {folders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">No folder</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="password-protected" 
-                checked={isPasswordProtected}
-                onCheckedChange={(checked) => onPasswordProtectedChange(checked === true)}
-              />
-              <label 
-                htmlFor="password-protected" 
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
-              >
-                <Lock className="h-4 w-4 mr-1" />
-                Password Protected
-              </label>
-            </div>
-            {isPasswordProtected && (
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={password || ""}
+          
+          {/* Tags input */}
+          <div className="grid gap-2">
+            <Label>Tags</Label>
+            <TagInput tags={noteTags || []} onChange={onTagsChange} />
+          </div>
+          
+          {/* Photo upload */}
+          <div className="grid gap-2">
+            <Label>Photo</Label>
+            <PhotoUpload photoUrl={notePhotoUrl} onPhotoChange={onPhotoUrlChange} />
+          </div>
+          
+          {/* Voice recorder */}
+          <div className="grid gap-2">
+            <Label>Voice Recording</Label>
+            <VoiceRecorder voiceUrl={noteVoiceUrl} onVoiceChange={onVoiceUrlChange} />
+          </div>
+          
+          {/* Password protection toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password-protection">Password Protection</Label>
+            <Switch 
+              id="password-protection"
+              checked={isPasswordProtected} 
+              onCheckedChange={onPasswordProtectedChange}
+            />
+          </div>
+          
+          {/* Password input (conditionally shown) */}
+          {isPasswordProtected && (
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                value={password || ""} 
                 onChange={(e) => onPasswordChange(e.target.value)}
+                placeholder="Enter password"
               />
-            )}
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Photo</label>
-            <PhotoUpload 
-              photoUrl={notePhotoUrl} 
-              onChange={onPhotoUrlChange} 
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Voice Note</label>
-            <VoiceRecorder 
-              voiceUrl={noteVoiceUrl} 
-              onChange={onVoiceUrlChange} 
-            />
-          </div>
+              
+              {/* Password validation message */}
+              {passwordValidation && (
+                <Alert variant="destructive" className="mt-2 py-2">
+                  <AlertDescription>{passwordValidation}</AlertDescription>
+                </Alert>
+              )}
+              
+              {!passwordValidation && (
+                <p className="text-xs text-muted-foreground">
+                  Strong passwords include uppercase, lowercase, numbers, and special characters
+                </p>
+              )}
+            </div>
+          )}
         </div>
+        
         <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button type="button" onClick={onSave}>
-            Save
-          </Button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={onSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

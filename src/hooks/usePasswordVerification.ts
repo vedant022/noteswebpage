@@ -18,6 +18,44 @@ export function usePasswordVerification() {
     return SHA256(password + salt).toString(enc.Hex);
   };
 
+  // Validate password strength
+  const validatePasswordStrength = (password: string) => {
+    const requirements = [];
+    let valid = true;
+
+    if (password.length < 8) {
+      requirements.push("at least 8 characters");
+      valid = false;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      requirements.push("an uppercase letter");
+      valid = false;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      requirements.push("a lowercase letter");
+      valid = false;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      requirements.push("a number");
+      valid = false;
+    }
+
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      requirements.push("a special character");
+      valid = false;
+    }
+
+    let message = "";
+    if (!valid) {
+      message = `Password should include ${requirements.join(", ")}`;
+    }
+
+    return { valid, message };
+  };
+
   // Secure password verification function
   const verifyNotePassword = (note: Note, password: string) => {
     // If note doesn't have a password hash or salt, it's not properly secured
@@ -58,5 +96,10 @@ export function usePasswordVerification() {
     return true;
   };
 
-  return { verifyNotePassword, prepareNotePassword, checkNoteAccess };
+  return { 
+    verifyNotePassword, 
+    prepareNotePassword, 
+    checkNoteAccess,
+    validatePasswordStrength
+  };
 }

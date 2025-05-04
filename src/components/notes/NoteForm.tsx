@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { NoteDialog } from "./NoteDialog";
 import { Note, NoteFormData } from "@/types/note";
 import { FolderType } from "../folders/FolderList";
 import { useToast } from "@/hooks/use-toast";
 import { usePasswordVerification } from "@/hooks/usePasswordVerification";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface NoteFormProps {
   open: boolean;
@@ -27,7 +29,7 @@ export function NoteForm({
   setIsCreating
 }: NoteFormProps) {
   const { toast } = useToast();
-  const { prepareNotePassword } = usePasswordVerification();
+  const { prepareNotePassword, validatePasswordStrength } = usePasswordVerification();
   
   // State for note form
   const [noteTitle, setNoteTitle] = useState("");
@@ -38,6 +40,7 @@ export function NoteForm({
   const [noteTags, setNoteTags] = useState<string[] | null>([]);
   const [notePassword, setNotePassword] = useState<string | null>(null);
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState<string | null>(null);
 
   // Set form values when editing note or creating new note
   useEffect(() => {
@@ -51,6 +54,7 @@ export function NoteForm({
         setNoteTags(editingNote.tags);
         setIsPasswordProtected(editingNote.is_password_protected || false);
         setNotePassword(editingNote.password || null);
+        setPasswordValidation(null);
       } else {
         resetNoteForm();
         setNoteFolderId(selectedFolderId);
@@ -67,12 +71,40 @@ export function NoteForm({
     setNoteTags([]);
     setNotePassword(null);
     setIsPasswordProtected(false);
+    setPasswordValidation(null);
   };
 
   const handleNoteDialogClose = () => {
     resetNoteForm();
     setIsOpen(false);
     setIsCreating(false);
+  };
+
+  // Handle password change with inline validation feedback
+  const handlePasswordChange = (password: string | null) => {
+    setNotePassword(password);
+    if (password && isPasswordProtected) {
+      const validationResult = validatePasswordStrength(password);
+      if (!validationResult.valid) {
+        setPasswordValidation(validationResult.message);
+      } else {
+        setPasswordValidation(null);
+      }
+    } else {
+      setPasswordValidation(null);
+    }
+  };
+
+  const handlePasswordProtectedChange = (isProtected: boolean) => {
+    setIsPasswordProtected(isProtected);
+    if (isProtected && notePassword) {
+      const validationResult = validatePasswordStrength(notePassword);
+      if (!validationResult.valid) {
+        setPasswordValidation(validationResult.message);
+      }
+    } else {
+      setPasswordValidation(null);
+    }
   };
 
   const handleSaveNote = () => {
@@ -86,12 +118,14 @@ export function NoteForm({
     }
 
     // Validate password if protection is enabled
-    if (isPasswordProtected && !notePassword) {
-      toast({
-        title: "Error",
-        description: "Password is required when password protection is enabled",
-        variant: "destructive",
-      });
+    if (isPasswordProtected && notePassword) {
+      const validationResult = validatePasswordStrength(notePassword);
+      if (!validationResult.valid) {
+        setPasswordValidation(validationResult.message);
+        return;
+      }
+    } else if (isPasswordProtected && !notePassword) {
+      setPasswordValidation("Password is required when protection is enabled");
       return;
     }
 
@@ -139,14 +173,15 @@ export function NoteForm({
       noteTags={noteTags}
       isPasswordProtected={isPasswordProtected}
       password={notePassword}
+      passwordValidation={passwordValidation}
       onTitleChange={setNoteTitle}
       onContentChange={setNoteContent}
       onPhotoUrlChange={setNotePhotoUrl}
       onVoiceUrlChange={setNoteVoiceUrl}
       onFolderIdChange={setNoteFolderId}
       onTagsChange={setNoteTags}
-      onPasswordChange={setNotePassword}
-      onPasswordProtectedChange={setIsPasswordProtected}
+      onPasswordChange={handlePasswordChange}
+      onPasswordProtectedChange={handlePasswordProtectedChange}
       onSave={handleSaveNote}
       onClose={handleNoteDialogClose}
     />
