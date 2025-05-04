@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Note, NoteFormData } from "@/types/note";
@@ -36,7 +35,8 @@ export function useNotes(selectedFolderId: string | null, selectedTag: string | 
           ...typedNote,
           folder_id: typedNote.folder_id || null,
           tags: typedNote.tags || [],
-          is_password_protected: !!typedNote.password
+          // A note is password protected if it has either the legacy password field or the new hash+salt
+          is_password_protected: !!(typedNote.password || typedNote.password_hash)
         } as Note;
       });
       
@@ -85,7 +85,10 @@ export function useNotes(selectedFolderId: string | null, selectedTag: string | 
         folder_id: note.folder_id,
         tags: note.tags,
         updated_at: new Date().toISOString(),
-        password: note.password
+        password: note.password,
+        // Add new password hash and salt fields
+        password_hash: note.password_hash,
+        password_salt: note.password_salt
       };
 
       if (note.id) {
@@ -97,7 +100,8 @@ export function useNotes(selectedFolderId: string | null, selectedTag: string | 
         if (error) throw error;
         return {
           ...note,
-          is_password_protected: !!note.password
+          // Note is password protected if it has hash and salt
+          is_password_protected: !!(note.password_hash && note.password_salt)
         } as Note;
       } else {
         // Creating a new note - add user_id to the note data
@@ -123,7 +127,7 @@ export function useNotes(selectedFolderId: string | null, selectedTag: string | 
           ...newNote,
           folder_id: newNote.folder_id || null,
           tags: newNote.tags || [],
-          is_password_protected: !!newNote.password
+          is_password_protected: !!(newNote.password_hash && newNote.password_salt)
         } as Note;
       }
     },

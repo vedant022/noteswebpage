@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { NoteDialog } from "./NoteDialog";
 import { Note, NoteFormData } from "@/types/note";
 import { FolderType } from "../folders/FolderList";
 import { useToast } from "@/hooks/use-toast";
+import { usePasswordVerification } from "@/hooks/usePasswordVerification";
 
 interface NoteFormProps {
   open: boolean;
@@ -27,6 +27,7 @@ export function NoteForm({
   setIsCreating
 }: NoteFormProps) {
   const { toast } = useToast();
+  const { prepareNotePassword } = usePasswordVerification();
   
   // State for note form
   const [noteTitle, setNoteTitle] = useState("");
@@ -94,7 +95,8 @@ export function NoteForm({
       return;
     }
 
-    console.log("Saving note:", {
+    // Prepare the note data with secure password handling
+    let noteData: NoteFormData = {
       id: editingNote?.id,
       title: noteTitle,
       content: noteContent,
@@ -102,19 +104,25 @@ export function NoteForm({
       voice_url: noteVoiceUrl,
       folder_id: noteFolderId,
       tags: noteTags,
-      password: isPasswordProtected ? notePassword : null,
-    });
+      password: null,
+      password_hash: null,
+      password_salt: null,
+    };
 
-    onSave({
-      id: editingNote?.id,
-      title: noteTitle,
-      content: noteContent,
-      photo_url: notePhotoUrl,
-      voice_url: noteVoiceUrl,
-      folder_id: noteFolderId,
-      tags: noteTags,
-      password: isPasswordProtected ? notePassword : null,
-    });
+    // If password protection is enabled, hash the password
+    if (isPasswordProtected && notePassword) {
+      // Get hash and salt for the password
+      const { hash, salt } = prepareNotePassword(notePassword);
+      
+      // Store the hash and salt but not the raw password
+      noteData.password_hash = hash;
+      noteData.password_salt = salt;
+      // Legacy password field kept as null for security
+      noteData.password = null;
+    }
+
+    console.log("Saving note with secure password handling");
+    onSave(noteData);
   };
 
   return (
